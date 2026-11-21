@@ -74,6 +74,23 @@ Exit code: 0 = complete, 1 = incomplete (XX GB still pending), 2 = nothing copie
 * `lsblk`, `findmnt` (util-linux) for device/target detection
 * Python 3 (stdlib only) for the Python tools
 
+## Compatibility
+
+* **Python tools** (`fat32_name_lister.py`, `type_scanner.py`, `verify_image.py`):
+  cross-platform (Linux, macOS, Windows) - pure Python stdlib, and they work
+  on image files and block devices alike (on Windows, point them at image
+  files).
+* **`resume_ddrescue.sh`**: Linux only - it relies on `lsblk`/`findmnt`
+  (util-linux) and GNU `ddrescue`. There is no Windows/macOS equivalent
+  without a VM/WSL.
+* **Selecting drives**: the Python tools take the device or image as an
+  argument. The ddrescue loop is configured with the `SRC_MODEL` and
+  `DST_LABEL` variables at the top of the script.
+* **Many bad sectors**: ddrescue handles any number of bad sectors - it logs
+  them in the mapfile, skips and retries them, and resumes after drops.
+  Data physically located on bad sectors cannot be recovered; run
+  `verify_image.py` afterwards to see the real loss in percent.
+
 ## Notes & limitations
 * Everything here is read-only with respect to the source disk; the Python
   tools never write to the input.

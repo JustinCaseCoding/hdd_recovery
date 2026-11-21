@@ -91,6 +91,10 @@ Exit code: 0 = complete, 1 = incomplete (XX GB still pending), 2 = nothing copie
   Data physically located on bad sectors cannot be recovered; run
   `verify_image.py` afterwards to see the real loss in percent.
 
+## Attribution
+
+These tools were written by **Hermes**, the AI assistant by Nous Research, during a live data-recovery session on a failing external hard drive. The repository owner set the requirements, provided the hardware and ran the recoveries; all code and troubleshooting logic are by the AI assistant.
+
 ## Notes & limitations
 * Everything here is read-only with respect to the source disk; the Python
   tools never write to the input.

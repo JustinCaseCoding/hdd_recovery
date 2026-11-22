@@ -69,9 +69,45 @@ python3 verify_image.py samsung_sda1.img samsung.mapfile
 
 Exit code: 0 = complete, 1 = incomplete (XX GB still pending), 2 = nothing copied.
 
+### `live_monitor.py`
+Colorful live console dashboard for a running `ddrescue` copy. Refreshes
+every 5 s and shows the rescued percentage (from the mapfile), current
+copy rate, bad/pending sizes, a file-type census and the last files found
+(type, approximate size, position). The census runs in a background thread
+every 120 s (configurable).
+
+```
+python3 live_monitor.py samsung_sda1.img samsung.mapfile [census_interval_s]
+```
+
+### `fix_bad_zone.sh` and `write_mbr.py`
+Re-partition a disk so that a damaged head zone (bad sectors at the very
+start, e.g. after a failing head-load mechanism) stays **outside** any
+partition - the drive then becomes usable again for non-critical data.
+
+* `fix_bad_zone.sh` - wipes the old table, creates one partition starting
+  at 512 MB and formats it exFAT. Refuses non-USB disks and, by default,
+  any model that is not `HM320II`.
+* `write_mbr.py` - fallback for when `sfdisk`/`parted` fail with an I/O
+  error while probing (they read into the damaged zone). Writes a minimal
+  MBR directly to sector 0; same 512 MB start, type 0x07.
+
+```
+sudo bash fix_bad_zone.sh /dev/sdb SAMSUNG320
+# if sfdisk fails: write the mbr directly, then format
+sudo /usr/bin/python3 write_mbr.py /dev/sdb
+sudo partprobe /dev/sdb        # or just unplug and replug the disk
+sudo mkfs.exfat -n SAMSUNG320 /dev/sdb1
+```
+
+Tip: `smartctl -A` shows `Current_Pending_Sector`; writing zeros over the
+excluded zone (`dd if=/dev/zero of=/dev/sdX bs=1M count=512`) forces the
+firmware to remap those sectors, which often quiets the drive on spin-up.
+
 ## Dependencies
 * `ddrescue` (GNU ddrescue) for the shell loop
 * `lsblk`, `findmnt` (util-linux) for device/target detection
+* `exfatprogs` (`mkfs.exfat`) for the bad-zone re-partitioning scripts
 * Python 3 (stdlib only) for the Python tools
 
 ## Compatibility
@@ -86,6 +122,10 @@ Exit code: 0 = complete, 1 = incomplete (XX GB still pending), 2 = nothing copie
 * **Selecting drives**: the Python tools take the device or image as an
   argument. The ddrescue loop is configured with the `SRC_MODEL` and
   `DST_LABEL` variables at the top of the script.
+* **`fix_bad_zone.sh` / `write_mbr.py`**: Linux only and **destructive** -
+  they wipe the target disk. Never point them at a disk whose data you still
+  need. Both have a model guard; adjust `EXPECTED`/the model check before use
+  on other drives.
 * **Many bad sectors**: ddrescue handles any number of bad sectors - it logs
   them in the mapfile, skips and retries them, and resumes after drops.
   Data physically located on bad sectors cannot be recovered; run
